@@ -46,8 +46,6 @@
 
 ## 安装
 
-当前项目**还没有发布到 npm**，所以暂时**不能直接用 `npm install op-wx-onebotv11` 获取**。
-
 目前请直接拉源码使用：
 
 ```bash
@@ -219,3 +217,21 @@ npm run typecheck
 npm run build
 npm run smoke
 ```
+
+---
+
+## 许可证
+
+本项目使用 **PolyForm Noncommercial 1.0.0**，仅允许非商业用途。
+
+---
+
+<details>
+<summary>赞助</summary>
+
+<p align="center">
+  <img src="./docs/images/sponsor-wechat-1.jpg" width="180" alt="赞助码1" />
+  <img src="./docs/images/sponsor-wechat-2.jpg" width="180" alt="赞助码2" />
+</p>
+
+</details>
