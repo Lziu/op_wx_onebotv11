@@ -226,12 +226,8 @@ npm run smoke
 
 ---
 
-<details>
-<summary>赞助</summary>
-
+### 赞助
 <p align="center">
-  <img src="./docs/images/sponsor-wechat-1.jpg" width="180" alt="赞助码1" />
+  <img src="./docs/images/sponsor-wechat-1.jpg" width="230" alt="赞助码1" />
   <img src="./docs/images/sponsor-wechat-2.jpg" width="180" alt="赞助码2" />
 </p>
-
-</details>
