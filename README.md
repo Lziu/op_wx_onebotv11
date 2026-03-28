@@ -46,8 +46,14 @@
 
 ## 安装
 
+当前项目**还没有发布到 npm**，所以暂时**不能直接用 `npm install op-wx-onebotv11` 获取**。
+
+目前请直接拉源码使用：
+
 ```bash
-npm install op-wx-onebotv11
+git clone https://github.com/Lziu/op_wx_onebotv11.git
+cd op_wx_onebotv11
+npm install
 ```
 
 ---
@@ -213,16 +219,3 @@ npm run typecheck
 npm run build
 npm run smoke
 ```
-
----
-
-## 当前建议用法
-
-如果你准备拿它接项目，建议先按下面顺序：
-
-1. 先跑通二维码登录
-2. 先确认私聊收消息正常
-3. 上层只接文本发送
-4. 把媒体出站视为未实现能力
-
-这样会比较稳，也更符合这个项目目前的实际状态。
