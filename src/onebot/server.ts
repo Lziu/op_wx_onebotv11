@@ -36,6 +36,9 @@ export class OneBotV11Server {
   private wsEvent: WebSocketServer | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private unsubscribe: (() => void) | null = null;
+  private reverseWsSockets = new Map<string, WebSocket>();
+  private reverseWsReconnectTimers = new Map<string, NodeJS.Timeout>();
+  private started = false;
 
   constructor(private readonly config: OneBotV11ServerConfig) {
     this.actionHandler = new OneBotActionHandler(config.adapter);
@@ -80,7 +83,92 @@ export class OneBotV11Server {
         if (client.readyState === WebSocket.OPEN) client.send(payload);
       }
     }
+    for (const socket of this.reverseWsSockets.values()) {
+      if (socket.readyState === WebSocket.OPEN) socket.send(payload);
+    }
     void this.maybePostReverseHttp(normalized);
+  }
+
+  private reverseWsHeaders(): Record<string, string> {
+    const selfId = this.config.adapter.getSelfId() || "unknown";
+    return {
+      "X-Self-ID": selfId,
+      "X-Client-Role": "Universal",
+      "User-Agent": "op_wx_onebotv11/0.1.0",
+      ...(this.config.accessToken ? { Authorization: `Bearer ${this.config.accessToken}` } : {}),
+    };
+  }
+
+  private clearReverseWsReconnect(url: string): void {
+    const timer = this.reverseWsReconnectTimers.get(url);
+    if (timer) {
+      clearTimeout(timer);
+      this.reverseWsReconnectTimers.delete(url);
+    }
+  }
+
+  private scheduleReverseWsReconnect(url: string): void {
+    if (!this.started || this.reverseWsReconnectTimers.has(url)) return;
+    const delay = this.config.reverseWs?.reconnectIntervalMs ?? 5000;
+    const timer = setTimeout(() => {
+      this.reverseWsReconnectTimers.delete(url);
+      void this.connectReverseWs(url);
+    }, delay);
+    this.reverseWsReconnectTimers.set(url, timer);
+  }
+
+  private async connectReverseWs(url: string): Promise<void> {
+    if (!this.started) return;
+    const existing = this.reverseWsSockets.get(url);
+    if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    this.clearReverseWsReconnect(url);
+
+    const socket = new WebSocket(url, { headers: this.reverseWsHeaders() });
+    this.reverseWsSockets.set(url, socket);
+
+    socket.on("open", () => {
+      this.logger.info(`reverse ws connected: ${url}`);
+    });
+
+    socket.on("message", async (data) => {
+      try {
+        const request = JSON.parse(String(data)) as OneBotApiRequest;
+        const response = await this.handleApiRequest(request);
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify(response));
+        }
+      } catch (error) {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            status: "failed",
+            retcode: 400,
+            data: null,
+            wording: error instanceof Error ? error.message : String(error),
+          }));
+        }
+      }
+    });
+
+    socket.on("error", (error) => {
+      this.logger.warn(`reverse ws error: ${url} ${String(error)}`);
+    });
+
+    socket.on("close", () => {
+      const current = this.reverseWsSockets.get(url);
+      if (current === socket) {
+        this.reverseWsSockets.delete(url);
+      }
+      this.logger.warn(`reverse ws closed: ${url}`);
+      this.scheduleReverseWsReconnect(url);
+    });
+  }
+
+  private async startReverseWs(): Promise<void> {
+    const urls = this.config.reverseWs?.urls ?? [];
+    await Promise.all(urls.map((url) => this.connectReverseWs(url)));
   }
 
   private setupHeartbeat(): void {
@@ -96,6 +184,7 @@ export class OneBotV11Server {
 
   async start(): Promise<void> {
     if (this.httpServer) return;
+    this.started = true;
 
     this.unsubscribe = this.config.adapter.onEvent((event) => this.broadcastEvent(event));
 
@@ -204,6 +293,7 @@ export class OneBotV11Server {
       this.httpServer!.listen(this.config.http?.port || 5700, this.config.http?.host || "127.0.0.1", () => resolve());
     });
 
+    await this.startReverseWs();
     this.setupHeartbeat();
     this.broadcastEvent({
       time: Math.floor(Date.now() / 1000),
@@ -215,18 +305,29 @@ export class OneBotV11Server {
   }
 
   async stop(): Promise<void> {
+    this.started = false;
     this.unsubscribe?.();
     this.unsubscribe = null;
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
+    for (const timer of this.reverseWsReconnectTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.reverseWsReconnectTimers.clear();
     await Promise.all([
+      ...Array.from(this.reverseWsSockets.values()).map((socket) => new Promise<void>((resolve) => {
+        if (socket.readyState === WebSocket.CLOSED) return resolve();
+        socket.once("close", () => resolve());
+        socket.close();
+      })),
       new Promise<void>((resolve) => this.wsUniversal?.close(() => resolve()) ?? resolve()),
       new Promise<void>((resolve) => this.wsApi?.close(() => resolve()) ?? resolve()),
       new Promise<void>((resolve) => this.wsEvent?.close(() => resolve()) ?? resolve()),
       new Promise<void>((resolve) => this.httpServer?.close(() => resolve()) ?? resolve())
     ]);
+    this.reverseWsSockets.clear();
     this.wsUniversal = null;
     this.wsApi = null;
     this.wsEvent = null;

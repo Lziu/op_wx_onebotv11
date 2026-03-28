@@ -28,12 +28,18 @@ export interface OneBotReverseHttpConfig {
   secret?: string;
 }
 
+export interface OneBotReverseWsConfig {
+  urls?: string[];
+  reconnectIntervalMs?: number;
+}
+
 export interface OneBotV11ServerConfig {
   adapter: import("./adapter/weixin-adapter.js").WeixinAdapter;
   accessToken?: string;
   http?: OneBotHttpConfig;
   ws?: OneBotWsConfig;
   reverseHttp?: OneBotReverseHttpConfig;
+  reverseWs?: OneBotReverseWsConfig;
   heartbeatIntervalMs?: number;
   messagePostFormat?: "array" | "string";
 }

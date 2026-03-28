@@ -42,7 +42,6 @@ These are not exposed because the official Weixin channel capability does not pr
 - group chat actions/events
 - friend/group/member list APIs
 - recall/delete/history/forward APIs
-- reverse WebSocket
 - outbound image / GIF / video / file
 - outbound record send
 
