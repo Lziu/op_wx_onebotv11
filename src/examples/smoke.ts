@@ -1,15 +1,37 @@
 import { OneBotV11Server } from "../onebot/server.js";
 import { WeixinAdapter } from "../adapter/weixin-adapter.js";
 
+function parseUserAliases(value: string | undefined): Record<string, string> {
+  if (!value?.trim()) return {};
+  const parsed = JSON.parse(value) as unknown;
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("OP_WX_USER_ID_ALIASES must be a JSON object");
+  }
+  return Object.fromEntries(
+    Object.entries(parsed).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+  );
+}
+
 async function main(): Promise<void> {
   const storageDir = process.env.OP_WX_STORAGE_DIR || "./.data/op_wx_onebotv11";
   const accessToken = process.env.OP_WX_ACCESS_TOKEN || "change-me";
   const host = process.env.OP_WX_HOST || "127.0.0.1";
   const port = Number(process.env.OP_WX_PORT || "5700");
+  const mappingStart = process.env.OP_WX_USER_ID_START == null
+    ? undefined
+    : Number(process.env.OP_WX_USER_ID_START);
 
   const adapter = new WeixinAdapter({
     storageDir,
     debug: true,
+    autoReloginOnExpire: true,
+    printQrInTerminalOnExpire: true,
+    botAgent: process.env.OP_WX_BOT_AGENT,
+    userIdMapping: {
+      prefix: process.env.OP_WX_USER_ID_PREFIX,
+      start: Number.isSafeInteger(mappingStart) ? mappingStart : undefined,
+      aliases: parseUserAliases(process.env.OP_WX_USER_ID_ALIASES),
+    },
   });
 
   if (!adapter.getStatus().good) {

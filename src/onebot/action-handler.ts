@@ -84,6 +84,17 @@ export class OneBotActionHandler {
           return ok({ yes: this.adapter.canSendImage() }, echo);
         case "can_send_record":
           return ok({ yes: this.adapter.canSendRecord() }, echo);
+        case "get_weixin_user_id_mappings":
+          return ok(this.adapter.getUserIdMappings(), echo);
+        case "set_weixin_user_id_mapping": {
+          const p = this.requireParams<{ user_id?: string | number; weixin_user_id?: string }>(params);
+          this.adapter.setUserIdMapping(String(p.user_id ?? ""), p.weixin_user_id ?? "");
+          return ok({}, echo);
+        }
+        case "delete_weixin_user_id_mapping": {
+          const p = this.requireParams<{ user_id?: string | number }>(params);
+          return ok({ deleted: this.adapter.deleteUserIdMapping(String(p.user_id ?? "")) }, echo);
+        }
         default:
           return failed(`unsupported action: ${action}`, 1404, echo);
       }

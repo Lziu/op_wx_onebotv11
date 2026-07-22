@@ -28,6 +28,7 @@ export const MessageItemType = {
 
 export interface BaseInfo {
   channel_version?: string;
+  bot_agent?: string;
 }
 
 export interface CdnMedia {
@@ -119,6 +120,9 @@ export interface GetUpdatesResp {
 }
 
 export interface GetUploadUrlResp {
+  ret?: number;
+  errcode?: number;
+  errmsg?: string;
   upload_param?: string;
   thumb_upload_param?: string;
   upload_full_url?: string;
@@ -128,6 +132,16 @@ export interface GetConfigResp {
   ret?: number;
   errmsg?: string;
   typing_ticket?: string;
+}
+
+export interface SendMessageResp {
+  ret?: number;
+  errmsg?: string;
+}
+
+export interface NotifyLifecycleResp {
+  ret?: number;
+  errmsg?: string;
 }
 
 export interface WeixinAccountState {
@@ -147,6 +161,7 @@ export interface QrStartResult {
 
 export interface QrWaitResult {
   connected: boolean;
+  alreadyConnected?: boolean;
   message: string;
   accountId?: string;
   botToken?: string;
@@ -161,12 +176,4 @@ export interface UploadedMedia {
   cipherSize: number;
   plainMd5?: string;
   downloadEncryptedQueryParam: string;
-  thumb?: {
-    aesKeyHex: string;
-    plainSize: number;
-    cipherSize: number;
-    downloadEncryptedQueryParam: string;
-    width?: number;
-    height?: number;
-  };
 }

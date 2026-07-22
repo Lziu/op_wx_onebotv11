@@ -5,6 +5,15 @@ export const DEFAULT_BASE_URL = "https://ilinkai.weixin.qq.com";
 export const DEFAULT_CDN_BASE_URL = "https://novac2c.cdn.weixin.qq.com/c2c";
 export const DEFAULT_BOT_TYPE = "3";
 
+export interface WeixinUserIdMappingConfig {
+  /** Prefix used when automatically allocating a new OneBot-facing user ID. */
+  prefix?: string;
+  /** First numeric suffix used for automatically allocated IDs. */
+  start?: number;
+  /** Explicit OneBot user ID -> real Weixin user ID aliases. */
+  aliases?: Record<string, string>;
+}
+
 export interface WeixinAdapterConfig {
   baseUrl?: string;
   cdnBaseUrl?: string;
@@ -12,6 +21,12 @@ export interface WeixinAdapterConfig {
   requestTimeoutMs?: number;
   longPollTimeoutMs?: number;
   debug?: boolean;
+  autoReloginOnExpire?: boolean;
+  printQrInTerminalOnExpire?: boolean;
+  qrLoginTimeoutMs?: number;
+  botAgent?: string;
+  notifyLifecycle?: boolean;
+  userIdMapping?: WeixinUserIdMappingConfig;
 }
 
 export interface OneBotHttpConfig {
